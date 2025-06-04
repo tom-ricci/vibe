@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
@@ -9,7 +11,16 @@ app.use(cors());
 app.use(compression());
 app.use(express.json());
 
-const vibes = [];
+const dataFile = path.join(__dirname, 'vibes.json');
+let vibes = [];
+
+// Load stored vibes if available
+try {
+  const json = fs.readFileSync(dataFile, 'utf8');
+  vibes = JSON.parse(json);
+} catch {
+  vibes = [];
+}
 
 app.get('/api/vibes', (req, res) => {
   res.json(vibes);
@@ -20,6 +31,11 @@ app.post('/api/vibes', (req, res) => {
   if (typeof message === 'string' && message.trim()) {
     const vibe = { message: message.trim(), date: new Date().toISOString() };
     vibes.push(vibe);
+    try {
+      fs.writeFileSync(dataFile, JSON.stringify(vibes, null, 2));
+    } catch (err) {
+      console.error('Failed to save vibe:', err);
+    }
     res.status(201).json(vibe);
   } else {
     res.status(400).json({ error: 'Invalid message' });
